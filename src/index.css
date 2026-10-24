@@ -1,0 +1,9 @@
+:root {
+  font-family: system-ui, -apple-system, sans-serif;
+  line-height: 1.5;
+  background-color: #f3f4f6;
+  color: #1f2937;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { min-width: 320px; min-height: 100vh; }
+button { cursor: pointer; font-family: inherit; }
