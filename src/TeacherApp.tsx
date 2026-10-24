@@ -42,7 +42,10 @@ export default function TeacherApp() {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    await supabase.auth.signInWithPassword({ email, password });
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) {
+      alert("Erreur de connexion : " + error.message);
+    }
   };
 
   if (!session) return (
