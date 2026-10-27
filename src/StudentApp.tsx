@@ -37,18 +37,17 @@ function StaticCanvas({ strokes, title, imageSrc }: { strokes: Stroke[], title: 
     <div style={{ flex: 1, padding: 10, textAlign: 'center' }}>
       <h3 style={{ marginBottom: 15, padding: 10, background: '#f3f4f6', borderRadius: 8 }}>{title}</h3>
       <div style={{ position: 'relative', width: '100%', maxWidth: '600px', margin: '0 auto' }}>
-        <img ref={imageRef} src={imageSrc} alt={title} style={{ width: '100%', display: 'block' }} onLoad={() => setLoaded(true)} />
+        <img ref={imageRef} src={imageSrc} alt={title} draggable={false} style={{ width: '100%', display: 'block', pointerEvents: 'none' }} onLoad={() => setLoaded(true)} />
         <canvas ref={canvasRef} style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' }} />
       </div>
     </div>
   );
 }
 
-// Composant réutilisable pour l'interface de dessin (Face ou Profil)
 function DrawingBoard({ title, imageSrc, labels, strokes, setStrokes, onNext, buttonText }: { title: string, imageSrc: string, labels: AnatomicalLabel[], strokes: Stroke[], setStrokes: any, onNext: () => void, buttonText: string }) {
   const [activeLabelId, setActiveLabelId] = useState(labels[0].id);
   const [currentStroke, setCurrentStroke] = useState<Stroke | null>(null);
-  const [loaded, setLoaded] = useState(false); // Nouvel état pour forcer le bon redimensionnement
+  const [loaded, setLoaded] = useState(false); 
   
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const imageRef = useRef<HTMLImageElement>(null);
@@ -59,7 +58,6 @@ function DrawingBoard({ title, imageSrc, labels, strokes, setStrokes, onNext, bu
     const ctx = canvas?.getContext('2d');
     if (!canvas || !ctx || !imageRef.current) return;
     
-    // Aligne parfaitement la mémoire du canvas avec la taille réelle de l'image
     canvas.width = imageRef.current.clientWidth;
     canvas.height = imageRef.current.clientHeight;
     
@@ -78,7 +76,6 @@ function DrawingBoard({ title, imageSrc, labels, strokes, setStrokes, onNext, bu
       ctx.stroke();
     });
 
-    // Recalculer si la fenêtre change de taille
     const handleResize = () => setLoaded(prev => !prev);
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
@@ -87,11 +84,10 @@ function DrawingBoard({ title, imageSrc, labels, strokes, setStrokes, onNext, bu
   const getCoordinates = (e: React.MouseEvent | React.TouchEvent) => {
     const canvas = canvasRef.current;
     if (!canvas) return null;
-    const rect = canvas.getBoundingClientRect(); // Boîte visuelle exacte
+    const rect = canvas.getBoundingClientRect(); 
     const clientX = 'touches' in e ? e.touches[0].clientX : (e as React.MouseEvent).clientX;
     const clientY = 'touches' in e ? e.touches[0].clientY : (e as React.MouseEvent).clientY;
     
-    // CORRECTION MAJEURE : On divise par la taille visuelle (rect) et non la taille mémoire (canvas)
     return { 
       x: (clientX - rect.left) / rect.width, 
       y: (clientY - rect.top) / rect.height 
@@ -137,9 +133,11 @@ function DrawingBoard({ title, imageSrc, labels, strokes, setStrokes, onNext, bu
         </div>
         <button onClick={() => { if(strokes.length === 0) alert("Veuillez dessiner d'abord."); else onNext(); }} style={{ width: '100%', padding: 15, marginTop: 30, background: '#2563eb', color: 'white', border: 'none' }}>{buttonText}</button>
       </div>
-      <div style={{ flex: 3, padding: 20, display: 'flex', justifyContent: 'center' }}>
+      {/* CORRECTION ICI : Ajout de overflowY: 'auto' et alignItems: 'flex-start' */}
+      <div style={{ flex: 3, padding: 20, display: 'flex', justifyContent: 'center', overflowY: 'auto', alignItems: 'flex-start' }}>
         <div style={{ position: 'relative', width: '100%', maxWidth: '800px', userSelect: 'none' }}>
-          <img ref={imageRef} src={imageSrc} alt="Radio" style={{ width: '100%', display: 'block' }} onLoad={() => setLoaded(true)} />
+          {/* CORRECTION ICI : L'image ne peut plus voler les clics (pointerEvents: 'none') */}
+          <img ref={imageRef} src={imageSrc} alt="Radio" draggable={false} style={{ width: '100%', display: 'block', pointerEvents: 'none' }} onLoad={() => setLoaded(true)} />
           <canvas ref={canvasRef} style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', touchAction: 'none' }} onMouseDown={startDrawing} onMouseMove={draw} onMouseUp={stopDrawing} onMouseLeave={stopDrawing} onTouchStart={startDrawing} onTouchMove={draw} onTouchEnd={stopDrawing} />
         </div>
       </div>
@@ -177,7 +175,6 @@ export default function StudentApp() {
     </div>
   );
 
-  // AJOUT DE LA PROPRIÉTÉ "KEY" POUR FORCER REACT À RÉINITIALISER LE CANVAS
   if (step === 1) return (
     <DrawingBoard key="face" title="1. Radio de Face" imageSrc="/radiothorax.jpg" labels={LABELS_FACE} strokes={strokesFace} setStrokes={setStrokesFace} onNext={() => setStep(2)} buttonText="Passer à la Radio de Profil" />
   );
