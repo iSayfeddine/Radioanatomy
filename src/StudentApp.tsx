@@ -48,6 +48,8 @@ function StaticCanvas({ strokes, title, imageSrc }: { strokes: Stroke[], title: 
 function DrawingBoard({ title, imageSrc, labels, strokes, setStrokes, onNext, buttonText }: { title: string, imageSrc: string, labels: AnatomicalLabel[], strokes: Stroke[], setStrokes: any, onNext: () => void, buttonText: string }) {
   const [activeLabelId, setActiveLabelId] = useState(labels[0].id);
   const [currentStroke, setCurrentStroke] = useState<Stroke | null>(null);
+  const [loaded, setLoaded] = useState(false); // Nouvel état pour forcer le bon redimensionnement
+  
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const imageRef = useRef<HTMLImageElement>(null);
   const isDrawing = useRef(false);
@@ -56,12 +58,16 @@ function DrawingBoard({ title, imageSrc, labels, strokes, setStrokes, onNext, bu
     const canvas = canvasRef.current;
     const ctx = canvas?.getContext('2d');
     if (!canvas || !ctx || !imageRef.current) return;
+    
+    // Aligne parfaitement la mémoire du canvas avec la taille réelle de l'image
     canvas.width = imageRef.current.clientWidth;
     canvas.height = imageRef.current.clientHeight;
+    
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
     ctx.lineWidth = 4;
+    
     const allStrokes = currentStroke ? [...strokes, currentStroke] : strokes;
     allStrokes.forEach((stroke) => {
       if (stroke.points.length === 0) return;
@@ -71,15 +77,25 @@ function DrawingBoard({ title, imageSrc, labels, strokes, setStrokes, onNext, bu
       for (let i = 1; i < stroke.points.length; i++) ctx.lineTo(stroke.points[i].x * canvas.width, stroke.points[i].y * canvas.height);
       ctx.stroke();
     });
-  }, [strokes, currentStroke]);
+
+    // Recalculer si la fenêtre change de taille
+    const handleResize = () => setLoaded(prev => !prev);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, [strokes, currentStroke, loaded]);
 
   const getCoordinates = (e: React.MouseEvent | React.TouchEvent) => {
     const canvas = canvasRef.current;
     if (!canvas) return null;
-    const rect = canvas.getBoundingClientRect();
+    const rect = canvas.getBoundingClientRect(); // Boîte visuelle exacte
     const clientX = 'touches' in e ? e.touches[0].clientX : (e as React.MouseEvent).clientX;
     const clientY = 'touches' in e ? e.touches[0].clientY : (e as React.MouseEvent).clientY;
-    return { x: (clientX - rect.left) / canvas.width, y: (clientY - rect.top) / canvas.height };
+    
+    // CORRECTION MAJEURE : On divise par la taille visuelle (rect) et non la taille mémoire (canvas)
+    return { 
+      x: (clientX - rect.left) / rect.width, 
+      y: (clientY - rect.top) / rect.height 
+    };
   };
 
   const startDrawing = (e: React.MouseEvent | React.TouchEvent) => {
@@ -123,7 +139,7 @@ function DrawingBoard({ title, imageSrc, labels, strokes, setStrokes, onNext, bu
       </div>
       <div style={{ flex: 3, padding: 20, display: 'flex', justifyContent: 'center' }}>
         <div style={{ position: 'relative', width: '100%', maxWidth: '800px', userSelect: 'none' }}>
-          <img ref={imageRef} src={imageSrc} alt="Radio" style={{ width: '100%', display: 'block' }} onLoad={() => setStrokes([...strokes])} />
+          <img ref={imageRef} src={imageSrc} alt="Radio" style={{ width: '100%', display: 'block' }} onLoad={() => setLoaded(true)} />
           <canvas ref={canvasRef} style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', touchAction: 'none' }} onMouseDown={startDrawing} onMouseMove={draw} onMouseUp={stopDrawing} onMouseLeave={stopDrawing} onTouchStart={startDrawing} onTouchMove={draw} onTouchEnd={stopDrawing} />
         </div>
       </div>
@@ -132,7 +148,7 @@ function DrawingBoard({ title, imageSrc, labels, strokes, setStrokes, onNext, bu
 }
 
 export default function StudentApp() {
-  const [step, setStep] = useState(0); // 0=Nom, 1=Face, 2=Profil, 3=Terminé
+  const [step, setStep] = useState(0);
   const [name, setName] = useState('');
   
   const [strokesFace, setStrokesFace] = useState<Stroke[]>([]);
@@ -150,7 +166,7 @@ export default function StudentApp() {
       setCorrectionFace(correctionData.strokes);
       setCorrectionProfil(correctionData.strokes_profil);
     }
-    setStep(3); // Passage à l'écran final
+    setStep(3);
   };
 
   if (step === 0) return (
@@ -161,15 +177,15 @@ export default function StudentApp() {
     </div>
   );
 
+  // AJOUT DE LA PROPRIÉTÉ "KEY" POUR FORCER REACT À RÉINITIALISER LE CANVAS
   if (step === 1) return (
-    <DrawingBoard title="1. Radio de Face" imageSrc="/radiothorax.jpg" labels={LABELS_FACE} strokes={strokesFace} setStrokes={setStrokesFace} onNext={() => setStep(2)} buttonText="Passer à la Radio de Profil" />
+    <DrawingBoard key="face" title="1. Radio de Face" imageSrc="/radiothorax.jpg" labels={LABELS_FACE} strokes={strokesFace} setStrokes={setStrokesFace} onNext={() => setStep(2)} buttonText="Passer à la Radio de Profil" />
   );
 
   if (step === 2) return (
-    <DrawingBoard title="2. Radio de Profil" imageSrc="/radioprofil.jpg" labels={LABELS_PROFIL} strokes={strokesProfil} setStrokes={setStrokesProfil} onNext={handleSubmit} buttonText="Envoyer et voir les corrections" />
+    <DrawingBoard key="profil" title="2. Radio de Profil" imageSrc="/radioprofil.jpg" labels={LABELS_PROFIL} strokes={strokesProfil} setStrokes={setStrokesProfil} onNext={handleSubmit} buttonText="Envoyer et voir les corrections" />
   );
 
-  // ÉTAPE 3 : Vue finale séparée
   return (
     <div style={{ padding: 20, maxWidth: 1400, margin: '0 auto' }}>
       <h2 style={{ textAlign: 'center', marginBottom: 30 }}>Merci {name}, vos réponses ont été envoyées !</h2>
