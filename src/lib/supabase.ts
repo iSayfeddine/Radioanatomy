@@ -10,7 +10,9 @@ export interface Stroke { points: Point[]; color: string; labelId: string; }
 export interface Submission {
   id: string;
   student_name: string;
-  strokes: Stroke[];           // Radio de face
-  strokes_profil: Stroke[];    // Radio de profil
+  strokes: Stroke[];
+  strokes_profil: Stroke[];
+  qcm_answers?: Record<number, string>; 
+  student_question?: string;            
   created_at: string;
 }
