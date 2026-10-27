@@ -43,9 +43,16 @@ export default function TeacherApp() {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     const { error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) {
-      alert("Erreur de connexion : " + error.message);
-    }
+    if (error) alert("Erreur de connexion : " + error.message);
+  };
+
+  const handleSetCorrection = async () => {
+    if (!selectedSub) return;
+    if (!window.confirm("Voulez-vous définir ce dessin comme la correction officielle qui sera montrée à tous les étudiants ?")) return;
+    
+    const { error } = await supabase.from('corrections').upsert({ id: 1, strokes: selectedSub.strokes });
+    if (error) alert("Erreur : " + error.message);
+    else alert("Correction officielle enregistrée avec succès !");
   };
 
   if (!session) return (
@@ -69,11 +76,19 @@ export default function TeacherApp() {
           </div>
         ))}
       </div>
-      <div style={{ flex: 3, padding: 20, display: 'flex', justifyContent: 'center' }}>
+      <div style={{ flex: 3, padding: 20, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
         {!selectedSub ? <p>Sélectionnez un étudiant.</p> : (
           <div style={{ position: 'relative', width: '100%', maxWidth: '800px' }}>
-            <img ref={imageRef} src="/radiothorax.jpg" alt="Radiothorax" style={{ width: '100%', display: 'block' }} onLoad={() => setSelectedSub({...selectedSub})} />
-            <canvas ref={canvasRef} style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' }} />
+            <div style={{ marginBottom: 15, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <h3>Dessin de : {selectedSub.student_name}</h3>
+              <button onClick={handleSetCorrection} style={{ background: '#10b981', color: 'white', border: 'none', padding: '10px 15px', borderRadius: '5px', fontWeight: 'bold' }}>
+                Définir comme correction officielle
+              </button>
+            </div>
+            <div style={{ position: 'relative' }}>
+              <img ref={imageRef} src="/radiothorax.jpeg" alt="Radiothorax" style={{ width: '100%', display: 'block' }} onLoad={() => setSelectedSub({...selectedSub})} />
+              <canvas ref={canvasRef} style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' }} />
+            </div>
           </div>
         )}
       </div>
