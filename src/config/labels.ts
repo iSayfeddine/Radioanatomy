@@ -1,8 +1,8 @@
 export interface AnatomicalLabel { id: string; name: string; color: string; }
 
 export const LABELS_FACE: AnatomicalLabel[] = [
-  { id: 'arc-sup-droit', name: 'Arc supérieur droit : veine cave supérieure', color: '#FF3B30' },
-  { id: 'arc-moyen-droit', name: 'Arc moyen droit : ligne paratrachéale droite', color: '#FF9500' },
+  { id: 'arc-sup-droit', name: 'Arc supérieur droit : tronc veineux brachiocéphalique droit', color: '#FF3B30' },
+  { id: 'arc-moyen-droit', name: 'Arc moyen droit : veine cave supérieure', color: '#FF9500' },
   { id: 'arc-inf-droit', name: 'Arc inférieur droit : atrium droit', color: '#007AFF' },
   { id: 'arc-sup-gauche', name: 'Arc supérieur gauche : bouton aortique et artère subclavière gauche', color: '#5856D6' },
   { id: 'arc-moyen-gauche', name: 'Arc moyen gauche : tronc de l’artère pulmonaire et auricule gauche', color: '#AF52DE' },
