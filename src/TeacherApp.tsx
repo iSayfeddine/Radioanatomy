@@ -86,7 +86,7 @@ export default function TeacherApp() {
               </button>
             </div>
             <div style={{ position: 'relative' }}>
-              <img ref={imageRef} src="/radiothorax.jpeg" alt="Radiothorax" style={{ width: '100%', display: 'block' }} onLoad={() => setSelectedSub({...selectedSub})} />
+              <img ref={imageRef} src="/radiothorax.jpg" alt="Radiothorax" style={{ width: '100%', display: 'block' }} onLoad={() => setSelectedSub({...selectedSub})} />
               <canvas ref={canvasRef} style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' }} />
             </div>
           </div>
