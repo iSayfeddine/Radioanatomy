@@ -38,7 +38,7 @@ function StaticCanvas({ strokes, title }: { strokes: Stroke[], title: string }) 
     <div style={{ flex: 1, padding: 10, textAlign: 'center' }}>
       <h3 style={{ marginBottom: 15, padding: 10, background: '#f3f4f6', borderRadius: 8 }}>{title}</h3>
       <div style={{ position: 'relative', width: '100%', maxWidth: '600px', margin: '0 auto' }}>
-        <img ref={imageRef} src="/radiothorax.jpeg" alt="Radiothorax" style={{ width: '100%', display: 'block' }} onLoad={() => setLoaded(true)} />
+        <img ref={imageRef} src="/radiothorax.jpg" alt="Radiothorax" style={{ width: '100%', display: 'block' }} onLoad={() => setLoaded(true)} />
         <canvas ref={canvasRef} style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' }} />
       </div>
     </div>
@@ -178,7 +178,7 @@ export default function StudentApp() {
       </div>
       <div style={{ flex: 3, padding: 20, display: 'flex', justifyContent: 'center' }}>
         <div style={{ position: 'relative', width: '100%', maxWidth: '800px', userSelect: 'none' }}>
-          <img ref={imageRef} src="/radiothorax.jpeg" alt="Radiothorax placeholder" style={{ width: '100%', display: 'block' }} onLoad={() => setStrokes([...strokes])} />
+          <img ref={imageRef} src="/radiothorax.jpg" alt="Radiothorax placeholder" style={{ width: '100%', display: 'block' }} onLoad={() => setStrokes([...strokes])} />
           <canvas ref={canvasRef} style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', touchAction: 'none' }} onMouseDown={startDrawing} onMouseMove={draw} onMouseUp={stopDrawing} onMouseLeave={stopDrawing} onTouchStart={startDrawing} onTouchMove={draw} onTouchEnd={stopDrawing} />
         </div>
       </div>
