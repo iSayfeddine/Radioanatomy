@@ -1,9 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { supabase, Stroke } from './lib/supabase';
-import { LABELS } from './config/labels';
+import { LABELS_FACE, LABELS_PROFIL, AnatomicalLabel } from './config/labels';
 
-// Helper component to display a read-only canvas with an image
-function StaticCanvas({ strokes, title }: { strokes: Stroke[], title: string }) {
+function StaticCanvas({ strokes, title, imageSrc }: { strokes: Stroke[], title: string, imageSrc: string }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const imageRef = useRef<HTMLImageElement>(null);
   const [loaded, setLoaded] = useState(false);
@@ -38,24 +37,17 @@ function StaticCanvas({ strokes, title }: { strokes: Stroke[], title: string }) 
     <div style={{ flex: 1, padding: 10, textAlign: 'center' }}>
       <h3 style={{ marginBottom: 15, padding: 10, background: '#f3f4f6', borderRadius: 8 }}>{title}</h3>
       <div style={{ position: 'relative', width: '100%', maxWidth: '600px', margin: '0 auto' }}>
-        <img ref={imageRef} src="/radiothorax.jpg" alt="Radiothorax" style={{ width: '100%', display: 'block' }} onLoad={() => setLoaded(true)} />
+        <img ref={imageRef} src={imageSrc} alt={title} style={{ width: '100%', display: 'block' }} onLoad={() => setLoaded(true)} />
         <canvas ref={canvasRef} style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' }} />
       </div>
     </div>
   );
 }
 
-export default function StudentApp() {
-  const [name, setName] = useState('');
-  const [started, setStarted] = useState(false);
-  const [submitted, setSubmitted] = useState(false);
-  const [activeLabelId, setActiveLabelId] = useState(LABELS[0].id);
-  const [strokes, setStrokes] = useState<Stroke[]>([]);
+// Composant réutilisable pour l'interface de dessin (Face ou Profil)
+function DrawingBoard({ title, imageSrc, labels, strokes, setStrokes, onNext, buttonText }: { title: string, imageSrc: string, labels: AnatomicalLabel[], strokes: Stroke[], setStrokes: any, onNext: () => void, buttonText: string }) {
+  const [activeLabelId, setActiveLabelId] = useState(labels[0].id);
   const [currentStroke, setCurrentStroke] = useState<Stroke | null>(null);
-  
-  // New state to hold the teacher's correction
-  const [correctionStrokes, setCorrectionStrokes] = useState<Stroke[] | null>(null);
-  
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const imageRef = useRef<HTMLImageElement>(null);
   const isDrawing = useRef(false);
@@ -76,9 +68,7 @@ export default function StudentApp() {
       ctx.strokeStyle = stroke.color;
       ctx.beginPath();
       ctx.moveTo(stroke.points[0].x * canvas.width, stroke.points[0].y * canvas.height);
-      for (let i = 1; i < stroke.points.length; i++) {
-        ctx.lineTo(stroke.points[i].x * canvas.width, stroke.points[i].y * canvas.height);
-      }
+      for (let i = 1; i < stroke.points.length; i++) ctx.lineTo(stroke.points[i].x * canvas.width, stroke.points[i].y * canvas.height);
       ctx.stroke();
     });
   }, [strokes, currentStroke]);
@@ -97,7 +87,7 @@ export default function StudentApp() {
     isDrawing.current = true;
     const coords = getCoordinates(e);
     if (!coords) return;
-    const activeLabel = LABELS.find(l => l.id === activeLabelId);
+    const activeLabel = labels.find(l => l.id === activeLabelId);
     setCurrentStroke({ points: [coords], color: activeLabel?.color || '#000', labelId: activeLabelId });
   };
 
@@ -116,56 +106,11 @@ export default function StudentApp() {
     setCurrentStroke(null);
   };
 
-  const handleSubmit = async () => {
-    if (strokes.length === 0) return alert("Veuillez dessiner avant d'envoyer.");
-    
-    // 1. Save student submission
-    const { error } = await supabase.from('submissions').insert([{ student_name: name, strokes }]);
-    if (error) return alert("Erreur lors de l'envoi.");
-    
-    // 2. Fetch teacher correction
-    const { data: correctionData } = await supabase.from('corrections').select('strokes').eq('id', 1).single();
-    if (correctionData) {
-      setCorrectionStrokes(correctionData.strokes);
-    }
-
-    setSubmitted(true);
-  };
-
-  // --- NEW SPLIT-SCREEN SUBMISSION VIEW ---
-  if (submitted) {
-    return (
-      <div style={{ padding: 20, maxWidth: 1400, margin: '0 auto' }}>
-        <h2 style={{ textAlign: 'center', marginBottom: 30 }}>Merci {name}, vos réponses ont été envoyées !</h2>
-        <div style={{ display: 'flex', flexDirection: window.innerWidth > 768 ? 'row' : 'column', gap: 20 }}>
-          
-          <StaticCanvas strokes={strokes} title="Votre dessin" />
-          
-          {correctionStrokes ? (
-            <StaticCanvas strokes={correctionStrokes} title="Correction du Professeur" />
-          ) : (
-             <div style={{ flex: 1, padding: 10, textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '2px dashed #ccc', borderRadius: 8 }}>
-                <p style={{ color: '#666' }}>Le professeur n'a pas encore publié la correction.</p>
-             </div>
-          )}
-        </div>
-      </div>
-    );
-  }
-
-  if (!started) return (
-    <div style={{ maxWidth: 400, margin: '100px auto', padding: 20 }}>
-      <h1>Radiothorax Mastery</h1>
-      <input type="text" placeholder="Votre nom complet" value={name} onChange={e => setName(e.target.value)} style={{ width: '100%', padding: 10, margin: '20px 0' }} />
-      <button onClick={() => name.trim() && setStarted(true)} disabled={!name.trim()} style={{ width: '100%', padding: 10 }}>Commencer</button>
-    </div>
-  );
-
   return (
     <div style={{ display: 'flex', flexDirection: window.innerWidth > 768 ? 'row' : 'column', height: '100vh' }}>
       <div style={{ padding: 20, flex: 1, overflowY: 'auto', background: 'white' }}>
-        <h3>Structures</h3>
-        {LABELS.map(label => (
+        <h3>{title}</h3>
+        {labels.map(label => (
           <div key={label.id} onClick={() => setActiveLabelId(label.id)} style={{ padding: 10, margin: '5px 0', cursor: 'pointer', borderLeft: `5px solid ${label.color}`, backgroundColor: activeLabelId === label.id ? '#e5e7eb' : 'transparent', fontWeight: activeLabelId === label.id ? 'bold' : 'normal' }}>
             {label.name}
           </div>
@@ -174,13 +119,71 @@ export default function StudentApp() {
           <button onClick={() => setStrokes(strokes.slice(0, -1))} style={{ marginRight: 10, padding: 8 }}>Annuler</button>
           <button onClick={() => { if(window.confirm('Tout effacer ?')) setStrokes([]) }} style={{ padding: 8 }}>Effacer tout</button>
         </div>
-        <button onClick={handleSubmit} style={{ width: '100%', padding: 15, marginTop: 30, background: '#2563eb', color: 'white', border: 'none' }}>Envoyer et voir la correction</button>
+        <button onClick={() => { if(strokes.length === 0) alert("Veuillez dessiner d'abord."); else onNext(); }} style={{ width: '100%', padding: 15, marginTop: 30, background: '#2563eb', color: 'white', border: 'none' }}>{buttonText}</button>
       </div>
       <div style={{ flex: 3, padding: 20, display: 'flex', justifyContent: 'center' }}>
         <div style={{ position: 'relative', width: '100%', maxWidth: '800px', userSelect: 'none' }}>
-          <img ref={imageRef} src="/radiothorax.jpg" alt="Radiothorax placeholder" style={{ width: '100%', display: 'block' }} onLoad={() => setStrokes([...strokes])} />
+          <img ref={imageRef} src={imageSrc} alt="Radio" style={{ width: '100%', display: 'block' }} onLoad={() => setStrokes([...strokes])} />
           <canvas ref={canvasRef} style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', touchAction: 'none' }} onMouseDown={startDrawing} onMouseMove={draw} onMouseUp={stopDrawing} onMouseLeave={stopDrawing} onTouchStart={startDrawing} onTouchMove={draw} onTouchEnd={stopDrawing} />
         </div>
+      </div>
+    </div>
+  );
+}
+
+export default function StudentApp() {
+  const [step, setStep] = useState(0); // 0=Nom, 1=Face, 2=Profil, 3=Terminé
+  const [name, setName] = useState('');
+  
+  const [strokesFace, setStrokesFace] = useState<Stroke[]>([]);
+  const [strokesProfil, setStrokesProfil] = useState<Stroke[]>([]);
+  
+  const [correctionFace, setCorrectionFace] = useState<Stroke[] | null>(null);
+  const [correctionProfil, setCorrectionProfil] = useState<Stroke[] | null>(null);
+
+  const handleSubmit = async () => {
+    const { error } = await supabase.from('submissions').insert([{ student_name: name, strokes: strokesFace, strokes_profil: strokesProfil }]);
+    if (error) return alert("Erreur lors de l'envoi.");
+    
+    const { data: correctionData } = await supabase.from('corrections').select('strokes, strokes_profil').eq('id', 1).single();
+    if (correctionData) {
+      setCorrectionFace(correctionData.strokes);
+      setCorrectionProfil(correctionData.strokes_profil);
+    }
+    setStep(3); // Passage à l'écran final
+  };
+
+  if (step === 0) return (
+    <div style={{ maxWidth: 400, margin: '100px auto', padding: 20 }}>
+      <h1>Radiothorax Mastery</h1>
+      <input type="text" placeholder="Votre nom complet" value={name} onChange={e => setName(e.target.value)} style={{ width: '100%', padding: 10, margin: '20px 0' }} />
+      <button onClick={() => name.trim() && setStep(1)} disabled={!name.trim()} style={{ width: '100%', padding: 10 }}>Commencer (Étape 1/2)</button>
+    </div>
+  );
+
+  if (step === 1) return (
+    <DrawingBoard title="1. Radio de Face" imageSrc="/radiothorax.jpg" labels={LABELS_FACE} strokes={strokesFace} setStrokes={setStrokesFace} onNext={() => setStep(2)} buttonText="Passer à la Radio de Profil" />
+  );
+
+  if (step === 2) return (
+    <DrawingBoard title="2. Radio de Profil" imageSrc="/radioprofil.jpg" labels={LABELS_PROFIL} strokes={strokesProfil} setStrokes={setStrokesProfil} onNext={handleSubmit} buttonText="Envoyer et voir les corrections" />
+  );
+
+  // ÉTAPE 3 : Vue finale séparée
+  return (
+    <div style={{ padding: 20, maxWidth: 1400, margin: '0 auto' }}>
+      <h2 style={{ textAlign: 'center', marginBottom: 30 }}>Merci {name}, vos réponses ont été envoyées !</h2>
+      
+      <h2 style={{ borderBottom: '2px solid #ccc', paddingBottom: 10, marginTop: 40 }}>Résultat : Radio de Face</h2>
+      <div style={{ display: 'flex', flexDirection: window.innerWidth > 768 ? 'row' : 'column', gap: 20 }}>
+        <StaticCanvas strokes={strokesFace} title="Votre dessin (Face)" imageSrc="/radiothorax.jpg" />
+        {correctionFace ? <StaticCanvas strokes={correctionFace} title="Correction Professeur" imageSrc="/radiothorax.jpg" /> : <div style={{ flex: 1, padding: 10, textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '2px dashed #ccc', borderRadius: 8 }}><p>Pas de correction publiée.</p></div>}
+      </div>
+
+      <h2 style={{ borderBottom: '2px solid #ccc', paddingBottom: 10, marginTop: 60 }}>Résultat : Radio de Profil</h2>
+      <div style={{ display: 'flex', flexDirection: window.innerWidth > 768 ? 'row' : 'column', gap: 20 }}>
+        <StaticCanvas strokes={strokesProfil} title="Votre dessin (Profil)" imageSrc="/radioprofil.jpg" />
+        {correctionProfil ? <StaticCanvas strokes={correctionProfil} title="Correction Professeur" imageSrc="/radioprofil.jpg" /> : <div style={{ flex: 1, padding: 10, textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '2px dashed #ccc', borderRadius: 8 }}><p>Pas de correction publiée.</p></div>}
       </div>
     </div>
   );
