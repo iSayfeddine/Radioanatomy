@@ -267,7 +267,7 @@ export default function StudentApp() {
           onChange={e => setStudentQuestion(e.target.value)} 
           rows={4}
           style={{ width: '100%', padding: '15px', borderRadius: '6px', border: '1px solid #cbd5e1', fontFamily: 'inherit', resize: 'vertical' }}
-          placeholder="Ex: Je n'ai pas bien compris comment délimiter l'atrium droit..."
+          placeholder="Ex: Je n'ai pas bien compris..."
         />
       </div>
 
